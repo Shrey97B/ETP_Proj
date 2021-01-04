@@ -1,0 +1,16 @@
+
+ETP tables and sequence
+1. create table stock(stsymb varchar(5) constraint pk_st primary key, stname varchar(20) unique, sharepr number(10,2), avshare number(8));
+2. create table dum_wall(Wallet_Id varchar(5) constraint pk_dw primary key, balance number(10) check (balance>=0));
+3. create table Trader(Tr_un varchar(20) constraint pk_tr primary key, password varchar(20) not null, name varchar(30), email varchar(20), contno varchar(10), wallet_id references dum_wall(Wallet_Id)); 
+4. create table Broker(Br_un varchar(20) constraint pk_br primary key, password varchar(20) not null, name varchar(30), email varchar(20), contno varchar(10), brokerage number(2), wallet_id references dum_wall(Wallet_Id)); 
+5. create table admin(ad_un varchar(20) constraint pk_ad primary key, password varchar (20), name varchar(30), email varchar(20));
+6. create table portfolio(Tr_un varchar(20) references Trader(Tr_un), stsymb varchar(5) references stock(stsymb), quantity Number(8),  constraint pk_port primary key (Tr_un,stsymb));
+7. create table Orders(Order_Id Number(10) constraint pk_or primary key, tr_un varchar(20) references Trader(Tr_un), stsymb varchar(5) references stock(stsymb), br_un varchar(20) references Broker(Br_un), otype varchar(5), num_share number(8), pricps number(10,2), brfee number(10,2), totfee number(20,2), status varchar(5));
+8.alter table Orders add (ocreat date, ocomp date);
+9.insert into stock values('TCS','Tata Consultancy',1840.00,5000);
+10. insert into stock values('INFY','Infosys',1288.88,8500);
+11. insert into stock values('RCOM','Reliance Comm',15.40,25000);
+12. insert into stock values('ONGC','ONGC',165.65,42000);
+13. insert into admin values('ad123','ad123','Admin ETP','ad123@etp.com');
+14. create sequence Order_Ids START WITH 101 INCREMENT BY 1 NOCACHE NOCYCLE;

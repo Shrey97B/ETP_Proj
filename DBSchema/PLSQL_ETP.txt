@@ -1,0 +1,103 @@
+PLSQL procedures
+
+-----------------------------------------------------
+
+create or replace procedure buyst (ORID IN NUMBER,TradU IN VARCHAR,STSY IN VARCHAR,Numsh IN NUMBER,PriceS IN Number, WallId IN VARCHAR,BRP IN NUMBER,Mess OUT VARCHAR)
+AS
+Av NUMBER;
+Bal NUMBER;
+Sharep NUMBER;
+Totp NUMBER;
+Orst VARCHAR(5);
+Rf NUMBER;
+BEGIN
+select AVSHARE INTO Av from Stock where STSYMB=STSY;
+IF Av < Numsh THEN
+	Mess := 'Sufficient shares unavailable';
+	RETURN;
+END IF;
+
+Sharep := PriceS * Numsh;
+Totp := Sharep*(1 + Brp/100);
+
+select BALANCE INTO Bal FROM dum_wall WHERE WALLET_ID=WallId;
+IF Bal<=Totp THEN
+	Mess := 'Balance is not sufficient. Total Charge is ' ||  Totp;
+	RETURN;
+END IF;
+
+select Status into Orst from Orders WHERE Order_Id=ORID;
+dbms_output.put_line(Orst);
+
+IF Orst='E' or Orst='ER' THEN
+	Mess := 'Order is expired';
+	RETURN;
+END IF;
+IF Orst!='A' THEN
+	Mess := 'Order has not been accepted';
+	RETURN;
+END IF;
+
+update Orders set Pricps=PriceS,Totfee=Totp,STATUS='C',OCOMP=SYSDATE where Order_Id=ORID;
+update dum_wall set BALANCE=BALANCE-Totp WHERE WALLET_ID=WallId;
+update stock set avshare = avshare - Numsh where STSYMB=STSY;
+select count(*) into Rf FROM Portfolio where TR_UN=TradU AND STSYMB=STSY;
+
+If Rf=0 THEN
+	insert into portfolio values(TradU,STSY,Numsh);
+ELSE
+	update portfolio set quantity=quantity + Numsh where TR_UN=TradU AND STSYMB=STSY;
+END IF;
+
+Mess := 'Order successfully completed';
+COMMIT;
+END;
+/
+
+------------------------------------------------------------------------------------------------------------------------
+
+create or replace procedure sellst (ORID IN NUMBER,TradU IN VARCHAR,STSY IN VARCHAR,Numsh IN NUMBER,PriceS IN NUMBER, WallId IN VARCHAR,BRP IN NUMBER,Mess OUT VARCHAR)
+AS
+Avshar NUMBER;
+Stat VARCHAR(5);
+ShP NUMBER;
+TotP NUMBER;
+BEGIN
+select status into Stat from orders where order_id=ORID;
+if Stat='E' or Stat='ER' THEN
+	Mess := 'Order has Expired';
+	RETURN;
+END IF;
+
+select quantity into Avshar from portfolio where tr_un=TradU and stsymb=STSY;
+if Avshar<Numsh THEN
+	Mess := 'Enough shares not owned by trader';
+	RETURN;
+END IF;
+
+ShP := Numsh*PriceS;
+TotP := ShP*( 1 - BRP/100);
+
+if Avshar=Numsh THEN
+	delete from portfolio where tr_un=TradU and stsymb=STSY;
+ELSE
+	update portfolio set quantity=quantity-Numsh where tr_un=TradU and stsymb=STSY;
+END IF;
+
+update stock set avshare=avshare + Numsh where stsymb=STSY;
+update dum_wall set balance=balance + TotP where wallet_id = WallId;
+update orders set PricPs = PriceS,Totfee=TotP,status='CU',ocomp=sysdate where Order_ID = ORID;
+Mess := 'Order successfully completed.';
+COMMIT;
+
+END;
+/
+
+---------------------------------------------------------------------
+declare
+Messa VARCHAR(100);
+BEGIN
+sellst(11,'Tr101','TCS',200,'w101',7,Messa);
+dbms_output.put_line(Messa);
+END;
+/
